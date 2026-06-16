@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "bundle-db": "mkdir -p data && cp ../db/feed.db data/feed.db && echo 'feed.db embutido em app/data/'",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
