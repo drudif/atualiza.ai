@@ -1,0 +1,14 @@
+# Reduz o contexto de build enviado ao Docker
+.git
+**/node_modules
+**/.next
+**/.turbo
+scraper
+db
+digests
+**/__pycache__
+**/.venv
+*.log
+**/.env
+**/.env.local
+# IMPORTANTE: app/data/feed.db (banco embutido) NÃO é ignorado — precisa ir na imagem
