@@ -1,0 +1,93 @@
+topics:
+  - id: nano-banana
+    label: "Nano Banana"
+    keywords: ["nano banana", "gemini image", "imagen", "google image generation"]
+    subreddits:
+      - GoogleGeminiAI
+      - AIArt
+      - PromptEngineering
+      - StableDiffusion
+
+  - id: omni-flash
+    label: "Gemini Omni Flash"
+    keywords: ["gemini flash", "gemini omni", "omni flash", "google gemini"]
+    subreddits:
+      - GoogleGeminiAI
+      - LanguageModels
+      - LocalLLaMA
+
+  - id: midjourney
+    label: "Midjourney"
+    keywords: ["midjourney", "mj", "niji"]
+    subreddits:
+      - midjourney
+      - MidjourneyPrompts
+
+  - id: seedance
+    label: "Seedance"
+    keywords: ["seedance", "bytedance video", "seedance 2"]
+    subreddits:
+      - aivideo
+      - VideoGenerationAI
+
+  - id: kling
+    label: "Kling"
+    keywords: ["kling", "kling ai", "kling 2", "kling 3"]
+    subreddits:
+      - aivideo
+      - VideoGenerationAI
+
+  - id: image-gen
+    label: "Image Generation"
+    keywords: ["stable diffusion", "flux", "comfyui", "lora", "controlnet", "dalle", "firefly", "image generation"]
+    subreddits:
+      - StableDiffusion
+      - FluxAI
+      - AIArt
+      - dalle
+      - comfyui
+      - PromptEngineering
+
+  - id: video-gen
+    label: "Video Generation"
+    keywords: ["ai video", "text to video", "video generation", "luma", "pika", "wan", "hailuo"]
+    subreddits:
+      - aivideo
+      - VideoGenerationAI
+      - lumaai
+      - pikaai
+      - filmmakers
+
+  - id: vibe-design
+    label: "Vibecoding Design"
+    keywords: ["vibe coding", "vibecoding", "claude code", "cursor", "ai frontend", "ai design", "ai ui"]
+    subreddits:
+      - ClaudeAI
+      - ClaudeCode
+      - cursor_ai
+      - ChatGPTCoding
+      - webdev
+      - Frontend
+
+  - id: vibe-automation
+    label: "Vibecoding Automação"
+    keywords: ["ai agent", "automation", "n8n", "workflow automation", "agentic", "multi-agent"]
+    subreddits:
+      - ai_agents
+      - n8n
+      - nocode
+      - AIAgents
+
+  - id: general
+    label: "GenAI Geral"
+    keywords: ["generative ai", "creative ai", "ai art", "ai creativity"]
+    subreddits:
+      - generativeAI
+      - artificial
+      - MachineLearning
+
+engagement_threshold:
+  min_score: 20
+  min_comments: 3
+  top_posts_per_sub: 25
+  top_comments: 10

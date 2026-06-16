@@ -1,0 +1,1 @@
+**creative-ai-feed** is a weekly Reddit scraper that collects and curates the best generative and creative AI content — covering image generation, video generation, vibecoding, and AI automation — then uses Claude to distill highlights into a structured digest, surfaced through a Next.js feed app.
