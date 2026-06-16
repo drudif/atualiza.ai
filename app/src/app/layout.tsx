@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Creative AI Feed",
-  description: "Weekly curated Reddit feed for generative/creative AI",
+  description: "Curadoria semanal de conteúdo avançado sobre IA generativa e criativa",
 };
 
 export default function RootLayout({
@@ -13,7 +13,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="bg-gray-950 text-gray-100 min-h-screen">{children}</body>
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500&display=swap"
+        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-paper text-ink min-h-screen">{children}</body>
     </html>
   );
 }

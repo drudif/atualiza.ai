@@ -5,51 +5,66 @@ import { cn } from "@/lib/utils";
 
 export function RunButton() {
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [message, setMessage] = useState<string>("");
+  const [msg, setMsg] = useState<string>("");
 
   async function handleRun() {
     setState("running");
-    setMessage("");
+    setMsg("");
     try {
       const res = await fetch("/api/run", { method: "POST" });
       const data = await res.json();
       if (data.ok) {
         setState("done");
-        setMessage("Scraper concluído com sucesso.");
-        setTimeout(() => window.location.reload(), 1500);
+        setMsg("concluído");
+        setTimeout(() => window.location.reload(), 1800);
       } else {
         setState("error");
-        setMessage(data.error || "Erro desconhecido.");
+        setMsg("falhou");
       }
-    } catch (e) {
+    } catch {
       setState("error");
-      setMessage(String(e));
+      setMsg("falhou");
     }
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-stretch border-2 border-ink shadow-brutal-sm">
       <button
         onClick={handleRun}
         disabled={state === "running"}
         className={cn(
-          "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-          state === "running"
-            ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-500 text-white"
+          "px-5 py-2 text-xs font-satoshi font-bold uppercase tracking-[0.18em]",
+          "border-r-2 border-ink transition-colors",
+          state === "running" && "bg-surface text-muted cursor-not-allowed",
+          state === "done" && "bg-ink text-cream",
+          state === "error" && "bg-accent text-cream",
+          state === "idle" && "bg-ink text-cream hover:bg-muted"
         )}
       >
-        {state === "running" ? "Rodando..." : "Rodar agora"}
+        {state === "running"
+          ? "rodando..."
+          : state === "done"
+          ? "✓ ok"
+          : state === "error"
+          ? "✕ erro"
+          : "rodar agora"}
       </button>
+
       <a
         href="/api/export"
-        className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
+        className="px-5 py-2 text-xs font-satoshi font-bold uppercase tracking-[0.18em] bg-paper text-ink hover:bg-surface transition-colors border-r-2 border-ink"
       >
-        Exportar
+        exportar
       </a>
-      {message && (
-        <span className={cn("text-sm", state === "error" ? "text-red-400" : "text-green-400")}>
-          {message}
+
+      {msg && (
+        <span
+          className={cn(
+            "px-4 py-2 text-xs font-courier",
+            state === "error" ? "bg-accent text-cream" : "bg-surface text-muted"
+          )}
+        >
+          {msg}
         </span>
       )}
     </div>

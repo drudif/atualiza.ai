@@ -22,56 +22,90 @@ export function PostCard({
   topicIds,
   url,
 }: PostCardProps) {
+  const isTop = curationScore !== null && curationScore >= 8;
+
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex flex-col gap-3 hover:border-gray-600 transition-colors">
-      <div className="flex items-start justify-between gap-2">
+    <article
+      className={cn(
+        "border-2 border-ink bg-cream flex flex-col",
+        "shadow-brutal transition-all duration-100",
+        "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-lg"
+      )}
+    >
+      {/* Score strip */}
+      {curationScore !== null && (
+        <div
+          className={cn(
+            "border-b-2 border-ink px-4 py-2 flex items-center justify-between",
+            isTop ? "bg-ink" : "bg-surface"
+          )}
+        >
+          <span
+            className={cn(
+              "font-satoshi text-xs font-bold uppercase tracking-[0.2em]",
+              isTop ? "text-cream" : "text-muted"
+            )}
+          >
+            Curadoria
+          </span>
+          <span
+            className={cn(
+              "font-satoshi text-sm font-black",
+              isTop ? "text-cream" : "text-ink"
+            )}
+          >
+            {curationScore}
+            <span className={cn("font-normal text-xs", isTop ? "text-cream/60" : "text-muted")}>
+              /10
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="p-5 flex flex-col gap-3 flex-1">
         <Link
           href={`/post/${id}`}
-          className="text-white font-medium leading-snug hover:text-blue-400 transition-colors line-clamp-3"
+          className="font-satoshi font-bold text-lg leading-tight text-ink hover:text-accent transition-colors"
         >
           {title}
         </Link>
-        {curationScore !== null && (
-          <span
-            className={cn(
-              "shrink-0 text-xs font-bold px-2 py-1 rounded-full",
-              curationScore >= 8
-                ? "bg-green-900 text-green-300"
-                : curationScore >= 6
-                ? "bg-yellow-900 text-yellow-300"
-                : "bg-gray-800 text-gray-400"
-            )}
-          >
-            {curationScore}/10
-          </span>
+
+        {summary && (
+          <p className="font-courier text-sm leading-[1.7] text-ink/75 line-clamp-4">
+            {summary}
+          </p>
         )}
       </div>
 
-      {summary && (
-        <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
-          {summary}
-        </p>
-      )}
+      {/* Footer */}
+      <div className="border-t-2 border-ink px-5 py-3 flex items-center gap-3 bg-surface flex-wrap">
+        <span className="font-satoshi text-xs font-bold uppercase tracking-widest text-muted">
+          r/{subreddit}
+        </span>
+        <span className="font-courier text-xs text-muted">↑ {score.toLocaleString()}</span>
 
-      <div className="flex items-center gap-3 text-xs text-gray-500 mt-auto pt-2 border-t border-gray-800">
-        <span className="font-medium text-gray-400">r/{subreddit}</span>
-        <span>↑ {score.toLocaleString()}</span>
-        <div className="flex gap-1 ml-auto flex-wrap justify-end">
+        <div className="flex gap-1.5 ml-auto flex-wrap justify-end">
           {topicIds.slice(0, 2).map((t) => (
-            <span key={t} className="bg-gray-800 px-2 py-0.5 rounded text-gray-400">
+            <span
+              key={t}
+              className="border border-ink text-xs px-2 py-0.5 font-satoshi font-medium uppercase tracking-wide text-muted"
+            >
               {t}
             </span>
           ))}
         </div>
+
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-400 ml-1"
+          aria-label="Ver original no Reddit"
+          className="font-satoshi text-sm font-bold text-ink hover:text-accent transition-colors shrink-0"
         >
           ↗
         </a>
       </div>
-    </div>
+    </article>
   );
 }

@@ -11,12 +11,10 @@ interface PageProps {
 export default async function PostPage({ params }: PageProps) {
   const { id } = await params;
   const postId = parseInt(id, 10);
-
   if (isNaN(postId)) notFound();
 
   const results = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
   const post = results[0];
-
   if (!post) notFound();
 
   let topicIds: string[] = [];
@@ -28,87 +26,153 @@ export default async function PostPage({ params }: PageProps) {
   try { keyInsights = JSON.parse(post.keyInsights ?? "[]"); } catch {}
 
   return (
-    <main className="min-h-screen bg-gray-950">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        {/* Back */}
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300 transition-colors mb-6 inline-block">
-          ← Voltar ao feed
-        </Link>
+    <main className="min-h-screen bg-paper">
+      {/* ── Header strip ── */}
+      <div className="border-b-2 border-ink bg-paper sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link
+            href="/"
+            className="font-satoshi font-bold text-xs uppercase tracking-widest text-muted hover:text-ink transition-colors"
+          >
+            ← Feed
+          </Link>
+          <span className="font-satoshi font-black text-sm uppercase tracking-tight text-ink">
+            Creative AI Feed
+          </span>
+        </div>
+      </div>
 
-        {/* Title + meta */}
-        <h1 className="text-2xl font-bold text-white leading-snug mt-2">{post.title}</h1>
-        <div className="flex items-center gap-3 mt-3 text-sm text-gray-500">
-          <span>r/{post.subreddit}</span>
-          <span>↑ {post.score.toLocaleString()}</span>
+      <article className="max-w-3xl mx-auto px-6 py-10">
+        {/* ── Meta strip ── */}
+        <div className="flex flex-wrap items-center gap-0 border-2 border-ink mb-6 shadow-brutal-sm">
+          <span className="font-satoshi text-xs font-bold uppercase tracking-widest px-4 py-2.5 border-r-2 border-ink text-muted bg-surface">
+            r/{post.subreddit}
+          </span>
+          <span className="font-courier text-xs px-4 py-2.5 border-r-2 border-ink text-muted">
+            ↑ {post.score.toLocaleString()}
+          </span>
           {post.curationScore && (
-            <span className="bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full text-xs font-medium">
+            <span className="font-satoshi text-xs font-black px-4 py-2.5 border-r-2 border-ink bg-ink text-cream">
               {post.curationScore}/10
             </span>
           )}
-          <div className="flex gap-1 ml-auto flex-wrap">
-            {topicIds.map((t) => (
-              <span key={t} className="bg-gray-800 px-2 py-0.5 rounded text-gray-400 text-xs">
+          <div className="flex gap-0 flex-wrap ml-auto">
+            {topicIds.map((t, i) => (
+              <span
+                key={t}
+                className={[
+                  "font-satoshi text-xs font-medium uppercase tracking-wide px-3 py-2.5 text-muted",
+                  i > 0 ? "border-l-2 border-ink" : "",
+                ].join(" ")}
+              >
                 {t}
               </span>
             ))}
           </div>
         </div>
 
-        {/* Link to original */}
+        {/* ── Title ── */}
+        <h1 className="font-satoshi font-black text-3xl md:text-4xl leading-tight text-ink mb-6">
+          {post.title}
+        </h1>
+
+        {/* ── Reddit link ── */}
         <a
           href={post.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          className="inline-flex items-center gap-2 font-satoshi text-xs font-bold uppercase tracking-widest border-2 border-ink px-5 py-2.5 bg-ink text-cream hover:bg-muted transition-colors shadow-brutal-sm mb-10"
         >
           Ver no Reddit ↗
         </a>
 
-        {/* Summary */}
+        {/* ── Summary ── */}
         {post.summary && (
-          <div className="mt-6 bg-gray-900 border border-gray-800 rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Resumo</h2>
-            <p className="text-gray-200 leading-relaxed">{post.summary}</p>
-          </div>
+          <section className="border-2 border-ink mb-6 shadow-brutal">
+            <div className="border-b-2 border-ink px-5 py-2 bg-surface">
+              <h2 className="font-satoshi text-xs font-bold uppercase tracking-[0.2em] text-muted">
+                Resumo
+              </h2>
+            </div>
+            <div className="px-6 py-5 bg-cream">
+              <p className="font-courier text-base leading-[1.8] text-ink">
+                {post.summary}
+              </p>
+            </div>
+          </section>
         )}
 
-        {/* Key insights */}
+        {/* ── Key insights ── */}
         {keyInsights.length > 0 && (
-          <div className="mt-4 bg-gray-900 border border-gray-800 rounded-lg p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Insights dos comentários
-            </h2>
-            <ul className="space-y-2">
+          <section className="border-2 border-ink mb-6 shadow-brutal">
+            <div className="border-b-2 border-ink px-5 py-2 bg-ink">
+              <h2 className="font-satoshi text-xs font-bold uppercase tracking-[0.2em] text-cream">
+                Insights dos comentários
+              </h2>
+            </div>
+            <div className="bg-cream">
               {keyInsights.map((insight, i) => (
-                <li key={i} className="flex gap-2 text-gray-300 text-sm leading-relaxed">
-                  <span className="text-blue-500 shrink-0">•</span>
-                  {insight}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Top comments */}
-        {topComments.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Comentários em destaque
-            </h2>
-            <div className="space-y-3">
-              {topComments.map((comment, i) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium text-gray-400">u/{comment.author}</span>
-                    <span className="text-xs text-gray-600">↑ {comment.score}</span>
-                  </div>
-                  <p className="text-gray-300 text-sm leading-relaxed">{comment.body}</p>
+                <div
+                  key={i}
+                  className={[
+                    "flex gap-4 px-6 py-4 font-courier text-sm leading-[1.75] text-ink",
+                    i < keyInsights.length - 1 ? "border-b-2 border-ink" : "",
+                  ].join(" ")}
+                >
+                  <span className="font-satoshi font-black text-accent shrink-0 mt-0.5">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span>{insight}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
-      </div>
+
+        {/* ── Top comments ── */}
+        {topComments.length > 0 && (
+          <section className="border-2 border-ink shadow-brutal">
+            <div className="border-b-2 border-ink px-5 py-2 bg-surface">
+              <h2 className="font-satoshi text-xs font-bold uppercase tracking-[0.2em] text-muted">
+                Comentários em destaque
+              </h2>
+            </div>
+            <div className="bg-cream">
+              {topComments.map((comment, i) => (
+                <div
+                  key={i}
+                  className={[
+                    "px-6 py-5",
+                    i < topComments.length - 1 ? "border-b-2 border-ink" : "",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center gap-4 mb-3">
+                    <span className="font-satoshi text-xs font-bold uppercase tracking-widest text-ink">
+                      u/{comment.author}
+                    </span>
+                    <span className="font-courier text-xs text-muted">
+                      ↑ {comment.score}
+                    </span>
+                  </div>
+                  <p className="font-courier text-sm leading-[1.75] text-ink/80">
+                    {comment.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Back link ── */}
+        <div className="mt-10 pt-6 border-t-2 border-ink">
+          <Link
+            href="/"
+            className="font-satoshi text-xs font-bold uppercase tracking-widest text-muted hover:text-ink transition-colors"
+          >
+            ← Voltar ao feed
+          </Link>
+        </div>
+      </article>
     </main>
   );
 }

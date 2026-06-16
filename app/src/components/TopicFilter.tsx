@@ -19,27 +19,31 @@ export function TopicFilter({ activeTopic }: { activeTopic: string | null }) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex overflow-x-auto border-2 border-ink w-fit max-w-full shadow-brutal-sm">
       <button
         onClick={() => setTopic(null)}
         className={cn(
-          "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+          "shrink-0 px-5 py-2.5 text-xs font-satoshi font-bold uppercase tracking-[0.18em]",
+          "border-r-2 border-ink transition-colors",
           activeTopic === null
-            ? "bg-blue-600 text-white"
-            : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+            ? "bg-ink text-cream"
+            : "bg-paper text-muted hover:bg-surface"
         )}
       >
         Todos
       </button>
-      {TOPICS.map((topic) => (
+
+      {TOPICS.map((topic, i) => (
         <button
           key={topic.id}
           onClick={() => setTopic(topic.id)}
           className={cn(
-            "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+            "shrink-0 px-5 py-2.5 text-xs font-satoshi font-bold uppercase tracking-[0.18em]",
+            "transition-colors",
+            i < TOPICS.length - 1 ? "border-r-2 border-ink" : "",
             activeTopic === topic.id
-              ? "bg-blue-600 text-white"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+              ? "bg-ink text-cream"
+              : "bg-paper text-muted hover:bg-surface"
           )}
         >
           {topic.label}
