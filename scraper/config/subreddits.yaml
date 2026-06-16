@@ -1,45 +1,71 @@
 topics:
   - id: nano-banana
     label: "Nano Banana"
-    keywords: ["nano banana", "gemini image", "imagen", "google image generation"]
+    keywords: ["nano banana", "gemini image", "imagen", "google image generation", "nano banana workflow", "gemini image editing", "consistent character", "img2img", "creative prompt", "photoreal prompt"]
     subreddits:
       - GoogleGeminiAI
       - AIArt
       - PromptEngineering
       - StableDiffusion
+      - CreativeAI
+    hn_queries:
+      - "Imagen Google"
+      - "Gemini image generation"
+      - "Nano Banana editing technique"
+      - "consistent character AI image"
 
   - id: omni-flash
     label: "Gemini Omni Flash"
-    keywords: ["gemini flash", "gemini omni", "omni flash", "google gemini"]
+    keywords: ["gemini flash", "gemini omni", "omni flash", "google gemini", "gemini creative", "gemini multimodal workflow", "gemini prompt technique"]
     subreddits:
       - GoogleGeminiAI
       - LanguageModels
       - LocalLLaMA
+      - PromptEngineering
+    hn_queries:
+      - "Gemini Flash creative"
+      - "Gemini multimodal workflow"
+      - "Gemini prompt technique"
 
   - id: midjourney
     label: "Midjourney"
-    keywords: ["midjourney", "mj", "niji"]
+    keywords: ["midjourney", "mj", "niji", "midjourney prompt technique", "sref style reference", "cref character reference", "cinematic prompt", "consistent character", "midjourney workflow", "moodboard"]
     subreddits:
       - midjourney
       - MidjourneyPrompts
+      - aiArt
+    hn_queries:
+      - "Midjourney prompt technique"
+      - "Midjourney style reference"
+      - "Midjourney consistent character"
 
   - id: seedance
     label: "Seedance"
-    keywords: ["seedance", "bytedance video", "seedance 2"]
+    keywords: ["seedance", "bytedance video", "seedance 2", "seedance workflow", "camera control video", "ai film", "consistent character video"]
     subreddits:
       - aivideo
       - VideoGenerationAI
+      - CreativeAI
+    hn_queries:
+      - "Seedance video"
+      - "Seedance workflow camera"
+      - "AI film technique"
 
   - id: kling
     label: "Kling"
-    keywords: ["kling", "kling ai", "kling 2", "kling 3"]
+    keywords: ["kling", "kling ai", "kling 2", "kling 3", "kling workflow", "image to video", "motion brush", "camera control", "lip sync", "ai music video"]
     subreddits:
       - aivideo
       - VideoGenerationAI
+      - CreativeAI
+    hn_queries:
+      - "Kling AI video"
+      - "Kling image to video workflow"
+      - "AI music video technique"
 
   - id: image-gen
     label: "Image Generation"
-    keywords: ["stable diffusion", "flux", "comfyui", "lora", "controlnet", "dalle", "firefly", "image generation"]
+    keywords: ["stable diffusion", "flux", "comfyui", "lora", "controlnet", "ipadapter", "dalle", "firefly", "comfyui workflow", "img2img workflow", "inpainting technique", "regional prompting", "creative prompt technique", "consistent character", "cinematic prompt", "upscale workflow", "style transfer"]
     subreddits:
       - StableDiffusion
       - FluxAI
@@ -47,20 +73,37 @@ topics:
       - dalle
       - comfyui
       - PromptEngineering
+      - CreativeAI
+      - generative
+      - proceduralgeneration
+    hn_queries:
+      - "ComfyUI workflow"
+      - "Flux LoRA training"
+      - "Stable Diffusion controlnet technique"
+      - "consistent character workflow"
+      - "img2img creative workflow"
+      - "cinematic AI image prompt"
 
   - id: video-gen
     label: "Video Generation"
-    keywords: ["ai video", "text to video", "video generation", "luma", "pika", "wan", "hailuo"]
+    keywords: ["ai video", "text to video", "video generation", "luma", "pika", "wan", "hailuo", "sora", "ai film", "ai music video", "animation workflow", "ainimation", "vfx ai", "camera control", "motion control", "lip sync", "image to video workflow", "wan workflow"]
     subreddits:
       - aivideo
       - VideoGenerationAI
       - lumaai
       - pikaai
       - filmmakers
+      - CreativeAI
+    hn_queries:
+      - "AI film workflow"
+      - "text to video technique"
+      - "Sora video creative"
+      - "AI music video workflow"
+      - "AI VFX animation pipeline"
 
   - id: vibe-design
     label: "Vibecoding Design"
-    keywords: ["vibe coding", "vibecoding", "claude code", "cursor", "ai frontend", "ai design", "ai ui"]
+    keywords: ["vibe coding", "vibecoding", "claude code", "cursor", "ai frontend", "ai design", "ai ui", "lovable", "bolt", "v0", "replit agent", "generative art", "creative coding", "shader", "webgl", "p5js", "three js", "beautiful ui", "design system", "interactive art"]
     subreddits:
       - ClaudeAI
       - ClaudeCode
@@ -68,23 +111,68 @@ topics:
       - ChatGPTCoding
       - webdev
       - Frontend
+      - reactjs
+      - nextjs
+      - web_design
+      - creativecoding
+      - generative
+      - SideProject
+    hn_queries:
+      - "vibe coding creative"
+      - "Claude Code generative art"
+      - "AI generated UI design"
+      - "creative coding AI"
+      - "shader webgl AI"
 
   - id: vibe-automation
     label: "Vibecoding Automação"
-    keywords: ["ai agent", "automation", "n8n", "workflow automation", "agentic", "multi-agent"]
+    keywords: ["ai agent", "automation", "n8n", "workflow automation", "agentic", "multi-agent", "make.com", "creative automation", "generative pipeline", "ai workflow", "mcp", "model context protocol", "creative tool building"]
     subreddits:
       - ai_agents
       - n8n
       - nocode
       - AIAgents
+      - Automate
+      - LocalLLaMA
+      - creativecoding
+    hn_queries:
+      - "AI agents creative workflow"
+      - "MCP model context protocol"
+      - "n8n creative automation"
+      - "agentic creative pipeline"
+      - "building creative AI tools"
+
+  - id: vibe-tools
+    label: "Ferramentas Vibe"
+    keywords: ["lovable", "bolt.new", "v0 dev", "replit agent", "windsurf", "github copilot", "cline", "aider", "creative app", "generative ui", "design to code", "interactive prototype", "ai built tool"]
+    subreddits:
+      - lovable_dev
+      - BoltAI
+      - replit
+      - GithubCopilot
+      - ChatGPTCoding
+      - SideProject
+      - creativecoding
+    hn_queries:
+      - "Lovable dev creative app"
+      - "Bolt new generative UI"
+      - "v0 Vercel design to code"
+      - "Windsurf creative build"
+      - "AI built interactive tool"
 
   - id: general
     label: "GenAI Geral"
-    keywords: ["generative ai", "creative ai", "ai art", "ai creativity"]
+    keywords: ["generative ai", "creative ai", "ai art", "ai creativity", "generative art", "ai experiment", "creative workflow", "ai technique"]
     subreddits:
       - generativeAI
+      - CreativeAI
+      - generative
+      - proceduralgeneration
       - artificial
-      - MachineLearning
+    hn_queries:
+      - "generative art technique"
+      - "creative AI workflow"
+      - "AI art experiment"
 
 engagement_threshold:
   min_score: 20

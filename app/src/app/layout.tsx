@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Creative AI Feed",
+  title: "Creative AI News Feed by convert",
   description: "Curadoria semanal de conteúdo avançado sobre IA generativa e criativa",
 };
 

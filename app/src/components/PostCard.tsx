@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { formatSource } from "@/lib/source";
 
 interface PostCardProps {
   id: number;
@@ -22,7 +26,9 @@ export function PostCard({
   topicIds,
   url,
 }: PostCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const isTop = curationScore !== null && curationScore >= 8;
+  const isLong = summary != null && summary.length > 220;
 
   return (
     <article
@@ -37,13 +43,13 @@ export function PostCard({
         <div
           className={cn(
             "border-b-2 border-ink px-4 py-2 flex items-center justify-between",
-            isTop ? "bg-ink" : "bg-surface"
+            isTop ? "bg-accent" : "bg-surface"
           )}
         >
           <span
             className={cn(
               "font-satoshi text-xs font-bold uppercase tracking-[0.2em]",
-              isTop ? "text-cream" : "text-muted"
+              isTop ? "text-yellow" : "text-muted"
             )}
           >
             Curadoria
@@ -51,11 +57,11 @@ export function PostCard({
           <span
             className={cn(
               "font-satoshi text-sm font-black",
-              isTop ? "text-cream" : "text-ink"
+              isTop ? "text-yellow" : "text-ink"
             )}
           >
             {curationScore}
-            <span className={cn("font-normal text-xs", isTop ? "text-cream/60" : "text-muted")}>
+            <span className={cn("font-normal text-xs", isTop ? "text-yellow/60" : "text-muted")}>
               /10
             </span>
           </span>
@@ -72,16 +78,31 @@ export function PostCard({
         </Link>
 
         {summary && (
-          <p className="font-courier text-sm leading-[1.7] text-ink/75 line-clamp-4">
-            {summary}
-          </p>
+          <>
+            <p
+              className={cn(
+                "font-courier text-sm leading-[1.7] text-ink/75",
+                !expanded && "line-clamp-4"
+              )}
+            >
+              {summary}
+            </p>
+            {isLong && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="self-start font-satoshi text-xs font-bold uppercase tracking-[0.15em] text-accent hover:text-ink transition-colors mt-0.5"
+              >
+                {expanded ? "fechar ↑" : "ler mais ↓"}
+              </button>
+            )}
+          </>
         )}
       </div>
 
       {/* Footer */}
       <div className="border-t-2 border-ink px-5 py-3 flex items-center gap-3 bg-surface flex-wrap">
         <span className="font-satoshi text-xs font-bold uppercase tracking-widest text-muted">
-          r/{subreddit}
+          {formatSource(subreddit)}
         </span>
         <span className="font-courier text-xs text-muted">↑ {score.toLocaleString()}</span>
 

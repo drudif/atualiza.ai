@@ -42,7 +42,7 @@ export function RunButton() {
         )}
       >
         {state === "running"
-          ? "rodando..."
+          ? "rodando (~5min)..."
           : state === "done"
           ? "✓ ok"
           : state === "error"

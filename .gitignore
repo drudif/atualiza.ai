@@ -27,3 +27,6 @@ digests/*.md
 
 # OS
 .DS_Store
+
+# TS build info
+*.tsbuildinfo

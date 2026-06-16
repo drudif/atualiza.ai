@@ -37,7 +37,7 @@ export default async function PostPage({ params }: PageProps) {
             ← Feed
           </Link>
           <span className="font-satoshi font-black text-sm uppercase tracking-tight text-ink">
-            Creative AI Feed
+            Creative AI News Feed
           </span>
         </div>
       </div>
@@ -52,7 +52,7 @@ export default async function PostPage({ params }: PageProps) {
             ↑ {post.score.toLocaleString()}
           </span>
           {post.curationScore && (
-            <span className="font-satoshi text-xs font-black px-4 py-2.5 border-r-2 border-ink bg-ink text-cream">
+            <span className="font-satoshi text-xs font-black px-4 py-2.5 border-r-2 border-ink bg-accent text-yellow">
               {post.curationScore}/10
             </span>
           )}
@@ -105,8 +105,8 @@ export default async function PostPage({ params }: PageProps) {
         {/* ── Key insights ── */}
         {keyInsights.length > 0 && (
           <section className="border-2 border-ink mb-6 shadow-brutal">
-            <div className="border-b-2 border-ink px-5 py-2 bg-ink">
-              <h2 className="font-satoshi text-xs font-bold uppercase tracking-[0.2em] text-cream">
+            <div className="border-b-2 border-ink px-5 py-2 bg-accent">
+              <h2 className="font-satoshi text-xs font-bold uppercase tracking-[0.2em] text-yellow">
                 Insights dos comentários
               </h2>
             </div>
@@ -119,7 +119,7 @@ export default async function PostPage({ params }: PageProps) {
                     i < keyInsights.length - 1 ? "border-b-2 border-ink" : "",
                   ].join(" ")}
                 >
-                  <span className="font-satoshi font-black text-accent shrink-0 mt-0.5">
+                  <span className="font-satoshi font-black text-yellow bg-accent px-1 shrink-0 mt-0.5">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span>{insight}</span>

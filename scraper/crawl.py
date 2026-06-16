@@ -9,8 +9,11 @@ Strategy (in order):
 import asyncio
 import json
 import logging
+import os
+import random
 import re
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +21,78 @@ import httpx
 import yaml
 
 logger = logging.getLogger(__name__)
+
+# ── Reddit OAuth (API oficial) ──────────────────────────────────────────────
+# App-only (client_credentials). Crie um app "script" em reddit.com/prefs/apps
+# e defina REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET no .env.
+_REDDIT_TOKEN_URL = "https://www.reddit.com/api/v1/access_token"
+_REDDIT_OAUTH = "https://oauth.reddit.com"
+_REDDIT_UA = "creative-ai-feed/1.0 (by /u/creative-ai-feed)"
+_token_cache: dict = {"token": None, "exp": 0.0}
+
+
+def _reddit_creds() -> tuple[str, str] | None:
+    cid = os.getenv("REDDIT_CLIENT_ID")
+    csec = os.getenv("REDDIT_CLIENT_SECRET")
+    return (cid, csec) if cid and csec else None
+
+
+async def _reddit_token(client: httpx.AsyncClient) -> str | None:
+    creds = _reddit_creds()
+    if not creds:
+        return None
+    now = time.time()
+    if _token_cache["token"] and _token_cache["exp"] > now + 30:
+        return _token_cache["token"]
+    try:
+        resp = await client.post(
+            _REDDIT_TOKEN_URL,
+            data={"grant_type": "client_credentials"},
+            auth=creds,
+            headers={"User-Agent": _REDDIT_UA},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        j = resp.json()
+        _token_cache["token"] = j["access_token"]
+        _token_cache["exp"] = now + int(j.get("expires_in", 3600))
+        logger.info("Reddit OAuth — token obtido")
+        return _token_cache["token"]
+    except Exception as exc:
+        logger.warning("Reddit OAuth falhou: %s", exc)
+        return None
+
+
+async def _reddit_api_get(client: httpx.AsyncClient, path: str) -> dict | list | None:
+    token = await _reddit_token(client)
+    if not token:
+        return None
+    url = _REDDIT_OAUTH + path
+    headers = {"Authorization": f"bearer {token}", "User-Agent": _REDDIT_UA}
+    for attempt in range(3):
+        try:
+            resp = await client.get(url, headers=headers, timeout=15)
+        except Exception as exc:
+            logger.warning("Reddit API erro %s: %s", url, exc)
+            return None
+        if resp.status_code == 200:
+            return resp.json()
+        if resp.status_code == 401:  # token expirado/inválido → renova uma vez
+            _token_cache["token"] = None
+            token = await _reddit_token(client)
+            if not token:
+                return None
+            headers["Authorization"] = f"bearer {token}"
+            continue
+        if resp.status_code == 429:
+            wait = 5 * (2 ** attempt) + random.uniform(1, 3)
+            logger.warning("Reddit API 429 — aguardando %.0fs (%d/3)", wait, attempt + 1)
+            await asyncio.sleep(wait)
+            continue
+        logger.debug("Reddit API HTTP %d para %s", resp.status_code, url)
+        return None
+    return None
+# ─────────────────────────────────────────────────────────────────────────────
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "subreddits.yaml"
 
@@ -33,6 +108,8 @@ _HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+_MAX_POST_AGE_DAYS = 60
+
 _config: dict | None = None
 
 
@@ -42,6 +119,17 @@ def _load_config() -> dict:
         with open(_CONFIG_PATH) as f:
             _config = yaml.safe_load(f)
     return _config
+
+
+def _is_recent(created_utc: str | None) -> bool:
+    if not created_utc:
+        return True  # sem data → mantém (data vem do Reddit, assume recente)
+    try:
+        dt = datetime.fromisoformat(created_utc)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=_MAX_POST_AGE_DAYS)
+        return dt >= cutoff
+    except Exception:
+        return True
 
 
 def _thresholds() -> dict:
@@ -57,18 +145,31 @@ def _parse_utc(ts: Any) -> str | None:
         return None
 
 
-async def _try_json_api(client: httpx.AsyncClient, url: str) -> dict | list | None:
-    try:
-        resp = await client.get(url, headers=_HEADERS, follow_redirects=True, timeout=15)
-        if resp.status_code == 429:
-            logger.warning("Rate limited (429) for %s — sleeping 5s", url)
-            await asyncio.sleep(5)
+async def _try_json_api(client: httpx.AsyncClient, url: str, max_retries: int = 3) -> dict | list | None:
+    for attempt in range(max_retries):
+        try:
             resp = await client.get(url, headers=_HEADERS, follow_redirects=True, timeout=15)
+        except Exception as exc:
+            logger.warning("Request error for %s: %s", url, exc)
+            if attempt < max_retries - 1:
+                await asyncio.sleep(2 + random.uniform(0, 1))
+            continue
+
         if resp.status_code == 200:
             return resp.json()
-        logger.warning("HTTP %d for %s", resp.status_code, url)
-    except Exception as exc:
-        logger.warning("Request error for %s: %s", url, exc)
+
+        if resp.status_code == 429:
+            retry_after = int(resp.headers.get("Retry-After", 0))
+            wait = retry_after if retry_after > 0 else (5 * (2 ** attempt))  # 5s, 10s, 20s
+            wait += random.uniform(1, 3)
+            logger.warning("429 rate limited — aguardando %.0fs (tentativa %d/%d)", wait, attempt + 1, max_retries)
+            await asyncio.sleep(wait)
+            continue
+
+        # 403/404 — esperado no JSON API, fallback via Crawl4AI
+        logger.debug("HTTP %d para %s", resp.status_code, url)
+        return None
+
     return None
 
 
@@ -240,6 +341,37 @@ def _parse_markdown_posts(markdown: str, subreddit: str) -> list[dict]:
     return posts
 
 
+async def _fetch_post_date(client: httpx.AsyncClient, permalink: str) -> str | None:
+    """Busca created_utc de um post individual via JSON API do Reddit."""
+    if not permalink:
+        return None
+    if not permalink.startswith("/"):
+        permalink = "/" + permalink
+    url = f"https://www.reddit.com{permalink}.json?raw_json=1&limit=1"
+    data = await _try_json_api(client, url)
+    if not data or not isinstance(data, list):
+        return None
+    try:
+        return _parse_utc(data[0]["data"]["children"][0]["data"]["created_utc"])
+    except (KeyError, TypeError, IndexError):
+        return None
+
+
+async def _fill_missing_dates(posts: list[dict], subreddit: str) -> None:
+    """Para posts sem created_utc, busca a data na página individual do post."""
+    undated = [p for p in posts if not p.get("created_utc") and p.get("permalink")]
+    if not undated:
+        return
+    logger.info("r/%s — buscando data de %d posts sem data", subreddit, len(undated))
+    async with httpx.AsyncClient() as client:
+        for post in undated:
+            date = await _fetch_post_date(client, post["permalink"])
+            if date:
+                post["created_utc"] = date
+                logger.debug("Data recuperada: %s → %s", post["title"][:60], date)
+            await asyncio.sleep(0.8 + random.uniform(0, 0.5))
+
+
 async def fetch_top_posts(subreddit: str, limit: int = 25) -> list[dict]:
     thresh = _thresholds()
     min_score = thresh.get("min_score", 20)
@@ -251,19 +383,36 @@ async def fetch_top_posts(subreddit: str, limit: int = 25) -> list[dict]:
     ]
 
     async with httpx.AsyncClient() as client:
+        # 1. API oficial do Reddit (OAuth) — preferencial, confiável
+        if _reddit_creds():
+            data = await _reddit_api_get(
+                client, f"/r/{subreddit}/top?t=week&limit={limit}&raw_json=1"
+            )
+            if data:
+                posts = _extract_posts_from_listing(data, subreddit, min_score, min_comments)
+                posts = [p for p in posts if _is_recent(p.get("created_utc"))]
+                logger.info("r/%s — %d posts via API oficial", subreddit, len(posts))
+                return posts
+
+        # 2. JSON API pública (sem auth) — fallback
         for url in urls:
             data = await _try_json_api(client, url)
             if data:
                 posts = _extract_posts_from_listing(data, subreddit, min_score, min_comments)
+                posts = [p for p in posts if _is_recent(p.get("created_utc"))]
                 logger.info("r/%s — %d posts via JSON API", subreddit, len(posts))
                 return posts
             await asyncio.sleep(1)
 
-    logger.warning("JSON API blocked for r/%s — using Crawl4AI+Playwright", subreddit)
+    logger.info("r/%s — JSON API bloqueado, usando Crawl4AI+Playwright", subreddit)
     posts = await _crawl4ai_fetch(subreddit)
-    filtered = [p for p in posts if p["score"] >= min_score or p["score"] == 0]
-    logger.info("r/%s — %d posts via Crawl4AI", subreddit, len(filtered))
-    return filtered
+    posts = [p for p in posts if (p["score"] >= min_score or p["score"] == 0)]
+
+    await _fill_missing_dates(posts, subreddit)
+
+    posts = [p for p in posts if _is_recent(p.get("created_utc"))]
+    logger.info("r/%s — %d posts via Crawl4AI", subreddit, len(posts))
+    return posts
 
 
 async def fetch_top_comments(permalink: str, limit: int = 10) -> list[dict]:
@@ -275,14 +424,23 @@ async def fetch_top_comments(permalink: str, limit: int = 10) -> list[dict]:
         f"https://old.reddit.com{permalink}.json?limit=100&sort=top&raw_json=1",
     ]
 
+    data = None
     async with httpx.AsyncClient() as client:
-        for url in urls:
-            data = await _try_json_api(client, url)
-            if data:
-                break
-            await asyncio.sleep(0.5)
+        # 1. API oficial — preferencial
+        if _reddit_creds():
+            api_path = permalink.rstrip("/") + ".json?limit=100&sort=top&raw_json=1"
+            data = await _reddit_api_get(client, api_path)
+
+        # 2. JSON API pública — fallback
+        if not data:
+            for url in urls:
+                data = await _try_json_api(client, url)
+                if data:
+                    break
+                await asyncio.sleep(0.5)
 
     if not data:
+        logger.debug("Comentários não disponíveis para %s (API bloqueada)", permalink)
         return []
 
     comments: list[dict] = []

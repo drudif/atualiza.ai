@@ -1,59 +1,68 @@
-import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
 
-export async function POST(request: NextRequest) {
-  const scraperDir = process.env.SCRAPER_DIR;
-  if (!scraperDir) {
-    return NextResponse.json(
-      { error: "SCRAPER_DIR env var not set" },
-      { status: 500 }
-    );
-  }
+export const runtime = "nodejs";
 
-  const runPy = path.join(scraperDir, "run.py");
+export async function POST() {
+  const scraperDir =
+    process.env.SCRAPER_DIR ?? path.join(process.cwd(), "../scraper");
 
-  return new Promise<NextResponse>((resolve) => {
-    const proc = spawn("uv", ["run", "python", runPy], {
-      cwd: scraperDir,
-      env: { ...process.env },
-    });
+  const enc = new TextEncoder();
 
-    const stdout: string[] = [];
-    const stderr: string[] = [];
+  const stream = new ReadableStream({
+    start(controller) {
+      const proc = spawn("uv", ["run", "python", "run.py"], {
+        cwd: scraperDir,
+        env: { ...process.env },
+      });
 
-    proc.stdout.on("data", (chunk: Buffer) => stdout.push(chunk.toString()));
-    proc.stderr.on("data", (chunk: Buffer) => stderr.push(chunk.toString()));
+      let done = false;
+      let outBuf = "";
+      let errBuf = "";
 
-    proc.on("close", (code: number) => {
-      if (code === 0) {
-        resolve(
-          NextResponse.json({
-            ok: true,
-            output: stdout.join(""),
-          })
-        );
-      } else {
-        resolve(
-          NextResponse.json(
-            {
-              ok: false,
-              error: stderr.join("") || stdout.join(""),
-              exitCode: code,
-            },
-            { status: 500 }
-          )
-        );
+      function send(text: string) {
+        if (done || !text.trim()) return;
+        try { controller.enqueue(enc.encode(text + "\n")); } catch {}
       }
-    });
 
-    proc.on("error", (err: Error) => {
-      resolve(
-        NextResponse.json(
-          { ok: false, error: err.message },
-          { status: 500 }
-        )
-      );
-    });
+      function flushBuf(buf: string, chunk: string): string {
+        const lines = (buf + chunk).split("\n");
+        const remaining = lines.pop() ?? "";
+        lines.forEach(send);
+        return remaining;
+      }
+
+      proc.stdout.on("data", (chunk: Buffer) => {
+        outBuf = flushBuf(outBuf, chunk.toString());
+      });
+
+      proc.stderr.on("data", (chunk: Buffer) => {
+        errBuf = flushBuf(errBuf, chunk.toString());
+      });
+
+      proc.on("close", (code: number) => {
+        if (done) return;
+        done = true;
+        send(outBuf);
+        send(errBuf);
+        send(`__DONE__:${code ?? 1}`);
+        controller.close();
+      });
+
+      proc.on("error", (err: Error) => {
+        if (done) return;
+        done = true;
+        send(`__ERROR__:${err.message}`);
+        controller.close();
+      });
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Accel-Buffering": "no",
+    },
   });
 }
