@@ -20,11 +20,17 @@ export default async function Home({ searchParams }: PageProps) {
   const activeTopic = params.topic ?? null;
   const activeWeek = params.week ?? null;
 
-  const allDigests = await db
-    .select()
-    .from(digests)
-    .orderBy(desc(digests.generatedAt))
-    .limit(10);
+  let allDigests: (typeof digests.$inferSelect)[] = [];
+  try {
+    allDigests = await db
+      .select()
+      .from(digests)
+      .orderBy(desc(digests.generatedAt))
+      .limit(10);
+  } catch (e) {
+    // Tabelas ainda não criadas (ex: Turso novo antes do primeiro scrape)
+    console.error("Falha ao ler digests — banco vazio?", e);
+  }
 
   // Unique weeks for navigation (latest digest per week)
   const seenWeeks = new Set<string>();

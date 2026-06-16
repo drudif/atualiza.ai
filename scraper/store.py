@@ -1,15 +1,20 @@
-"""Async SQLite storage operations for creative-ai-feed scraper."""
+"""Async storage (libsql / Turso) for creative-ai-feed scraper.
+
+Env-driven: com TURSO_DATABASE_URL aponta para o Turso (libsql remoto); sem ele,
+usa um arquivo SQLite local (file:) — o fluxo de desenvolvimento continua igual.
+"""
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
-import aiosqlite
+import libsql_client
 
-# DB path from env var, fallback to ../db/feed.db relative to this file
+# DB local padrão (usado quando TURSO_DATABASE_URL não está definido)
 _DEFAULT_DB_PATH = str(Path(__file__).parent.parent / "db" / "feed.db")
-DB_PATH = os.getenv("DB_PATH", _DEFAULT_DB_PATH)
+
+_client = None  # singleton libsql_client.Client
 
 _CREATE_RUNS = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -54,32 +59,48 @@ CREATE TABLE IF NOT EXISTS digests (
 """
 
 
-def _db_path() -> str:
-    """Return the DB path, re-reading env var each call to support late binding."""
-    return os.getenv("DB_PATH", _DEFAULT_DB_PATH)
+def _resolve_url() -> tuple[str, str | None]:
+    """Retorna (url, auth_token). Turso se configurado, senão arquivo local."""
+    turso = os.getenv("TURSO_DATABASE_URL")
+    if turso:
+        return turso, os.getenv("TURSO_AUTH_TOKEN")
+    path = os.getenv("DB_PATH", _DEFAULT_DB_PATH)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    return f"file:{path}", None
+
+
+def _get():
+    global _client
+    if _client is None:
+        url, token = _resolve_url()
+        _client = libsql_client.create_client(url, auth_token=token)
+    return _client
+
+
+async def close() -> None:
+    """Fecha o client libsql (chamado ao fim do run)."""
+    global _client
+    if _client is not None:
+        await _client.close()
+        _client = None
 
 
 async def init_db() -> None:
-    """Create tables if they don't exist. Also ensures the DB directory exists."""
-    path = _db_path()
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    async with aiosqlite.connect(path) as db:
-        await db.execute(_CREATE_RUNS)
-        await db.execute(_CREATE_POSTS)
-        await db.execute(_CREATE_DIGESTS)
-        await db.commit()
+    """Cria as tabelas se não existirem."""
+    client = _get()
+    await client.execute(_CREATE_RUNS)
+    await client.execute(_CREATE_POSTS)
+    await client.execute(_CREATE_DIGESTS)
 
 
 async def create_run() -> int:
-    """Insert a new run record and return its id."""
+    """Insere um novo run e retorna o id."""
     started_at = datetime.utcnow().isoformat()
-    async with aiosqlite.connect(_db_path()) as db:
-        cursor = await db.execute(
-            "INSERT INTO runs (started_at, status) VALUES (?, 'running')",
-            (started_at,),
-        )
-        await db.commit()
-        return cursor.lastrowid
+    rs = await _get().execute(
+        "INSERT INTO runs (started_at, status) VALUES (?, 'running')",
+        [started_at],
+    )
+    return rs.last_insert_rowid
 
 
 async def finish_run(
@@ -88,59 +109,52 @@ async def finish_run(
     posts_scraped: int,
     posts_curated: int,
 ) -> None:
-    """Mark a run as finished with final stats."""
+    """Marca um run como finalizado com as estatísticas finais."""
     finished_at = datetime.utcnow().isoformat()
-    async with aiosqlite.connect(_db_path()) as db:
-        await db.execute(
-            """
-            UPDATE runs
-            SET finished_at = ?, status = ?, posts_scraped = ?, posts_curated = ?
-            WHERE id = ?
-            """,
-            (finished_at, status, posts_scraped, posts_curated, run_id),
-        )
-        await db.commit()
+    await _get().execute(
+        """
+        UPDATE runs
+        SET finished_at = ?, status = ?, posts_scraped = ?, posts_curated = ?
+        WHERE id = ?
+        """,
+        [finished_at, status, posts_scraped, posts_curated, run_id],
+    )
 
 
 async def url_exists(url: str) -> bool:
-    """Return True if a post with this URL already exists in the DB."""
-    async with aiosqlite.connect(_db_path()) as db:
-        async with db.execute(
-            "SELECT 1 FROM posts WHERE url = ? LIMIT 1", (url,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            return row is not None
+    """True se já existe um post com esta URL."""
+    rs = await _get().execute(
+        "SELECT 1 FROM posts WHERE url = ? LIMIT 1", [url]
+    )
+    return len(rs.rows) > 0
 
 
 async def save_post(post: dict, run_id: int) -> int:
-    """Insert a post record and return its id."""
+    """Insere um post e retorna o id."""
     topic_ids = json.dumps(post.get("topic_ids", []))
     top_comments = json.dumps(post.get("top_comments", []))
-
-    async with aiosqlite.connect(_db_path()) as db:
-        cursor = await db.execute(
-            """
-            INSERT INTO posts (
-                run_id, subreddit, topic_ids, title, url, score, num_comments,
-                author, created_utc, body_md, top_comments
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                run_id,
-                post.get("subreddit", ""),
-                topic_ids,
-                post.get("title", ""),
-                post.get("url", ""),
-                post.get("score", 0),
-                post.get("num_comments", 0),
-                post.get("author"),
-                post.get("created_utc"),
-                post.get("body_md"),
-                top_comments,
-            ),
-        )
-        await db.commit()
-        return cursor.lastrowid
+    rs = await _get().execute(
+        """
+        INSERT INTO posts (
+            run_id, subreddit, topic_ids, title, url, score, num_comments,
+            author, created_utc, body_md, top_comments
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            run_id,
+            post.get("subreddit", ""),
+            topic_ids,
+            post.get("title", ""),
+            post.get("url", ""),
+            post.get("score", 0),
+            post.get("num_comments", 0),
+            post.get("author"),
+            post.get("created_utc"),
+            post.get("body_md"),
+            top_comments,
+        ],
+    )
+    return rs.last_insert_rowid
 
 
 async def update_post_curation(
@@ -149,18 +163,15 @@ async def update_post_curation(
     summary: str,
     key_insights: list[str],
 ) -> None:
-    """Store curation results on a post."""
-    insights_json = json.dumps(key_insights)
-    async with aiosqlite.connect(_db_path()) as db:
-        await db.execute(
-            """
-            UPDATE posts
-            SET curation_score = ?, summary = ?, key_insights = ?
-            WHERE id = ?
-            """,
-            (curation_score, summary, insights_json, post_id),
-        )
-        await db.commit()
+    """Grava os resultados da curadoria em um post."""
+    await _get().execute(
+        """
+        UPDATE posts
+        SET curation_score = ?, summary = ?, key_insights = ?
+        WHERE id = ?
+        """,
+        [curation_score, summary, json.dumps(key_insights), post_id],
+    )
 
 
 async def create_digest(
@@ -168,24 +179,20 @@ async def create_digest(
     week_label: str,
     post_ids: list[int],
 ) -> None:
-    """Create a digest record linking curated post ids to a run/week."""
+    """Cria um digest ligando os post ids curados a um run/semana."""
     generated_at = datetime.utcnow().isoformat()
-    async with aiosqlite.connect(_db_path()) as db:
-        await db.execute(
-            """
-            INSERT INTO digests (run_id, week_label, generated_at, post_ids)
-            VALUES (?, ?, ?, ?)
-            """,
-            (run_id, week_label, generated_at, json.dumps(post_ids)),
-        )
-        await db.commit()
+    await _get().execute(
+        """
+        INSERT INTO digests (run_id, week_label, generated_at, post_ids)
+        VALUES (?, ?, ?, ?)
+        """,
+        [run_id, week_label, generated_at, json.dumps(post_ids)],
+    )
 
 
 async def mark_post_curated(post_id: int) -> None:
-    """Set is_curated = 1 on a post."""
-    async with aiosqlite.connect(_db_path()) as db:
-        await db.execute(
-            "UPDATE posts SET is_curated = 1 WHERE id = ?",
-            (post_id,),
-        )
-        await db.commit()
+    """Seta is_curated = 1 em um post."""
+    await _get().execute(
+        "UPDATE posts SET is_curated = 1 WHERE id = ?",
+        [post_id],
+    )

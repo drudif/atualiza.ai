@@ -113,7 +113,13 @@ def _week_label() -> str:
 
 async def _run(dry_run: bool = False) -> None:
     _load_env()
+    try:
+        await _run_inner(dry_run)
+    finally:
+        await store.close()
 
+
+async def _run_inner(dry_run: bool = False) -> None:
     # 1. Init DB
     await store.init_db()
 
