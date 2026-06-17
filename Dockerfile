@@ -25,5 +25,6 @@ RUN pnpm build
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# Railway injeta PORT; bind em 0.0.0.0 para aceitar tráfego externo
-CMD ["sh", "-c", "pnpm start -- -H 0.0.0.0 -p ${PORT:-3000}"]
+# Railway injeta PORT; bind em 0.0.0.0 para aceitar tráfego externo.
+# Chama o next direto (sem `pnpm start --`, que repassava o `--` e quebrava o parse).
+CMD ["sh", "-c", "node_modules/.bin/next start -H 0.0.0.0 -p ${PORT:-3000}"]
