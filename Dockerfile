@@ -9,8 +9,11 @@ WORKDIR /app
 
 RUN npm install -g pnpm@11.1.1
 
-# 1. Dependências primeiro (camada cacheável)
-COPY app/package.json app/pnpm-lock.yaml ./
+# 1. Dependências primeiro (camada cacheável).
+# pnpm-workspace.yaml precisa estar presente JÁ no install — é onde fica
+# onlyBuiltDependencies (aprova esbuild/sharp/unrs); sem ele o pnpm 11
+# ignora os build scripts e falha com ERR_PNPM_IGNORED_BUILDS.
+COPY app/package.json app/pnpm-lock.yaml app/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # 2. Código do app + banco embutido (app/data/feed.db)
