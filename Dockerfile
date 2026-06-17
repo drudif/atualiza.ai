@@ -10,11 +10,11 @@ WORKDIR /app
 RUN npm install -g pnpm@11.1.1
 
 # 1. Dependências primeiro (camada cacheável).
-# pnpm-workspace.yaml precisa estar presente JÁ no install — é onde fica
-# onlyBuiltDependencies (aprova esbuild/sharp/unrs); sem ele o pnpm 11
-# ignora os build scripts e falha com ERR_PNPM_IGNORED_BUILDS.
-COPY app/package.json app/pnpm-lock.yaml app/pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts pula os postinstall (esbuild/sharp/unrs-resolver) — nenhum é
+# necessário para `next build` (sem next/image, ESLint off, Next usa SWC) — e
+# evita o gate ERR_PNPM_IGNORED_BUILDS do pnpm 11.
+COPY app/package.json app/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # 2. Código do app + banco embutido (app/data/feed.db)
 COPY app/ ./
