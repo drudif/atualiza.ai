@@ -3,11 +3,11 @@
 # Directory nem detecção automática. O scraper roda localmente; o banco vai
 # embutido em app/data/feed.db (gerado por `pnpm bundle-db` antes do push).
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@11.1.1
 
 # 1. Dependências primeiro (camada cacheável)
 COPY app/package.json app/pnpm-lock.yaml ./
